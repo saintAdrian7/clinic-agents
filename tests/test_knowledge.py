@@ -11,8 +11,12 @@ def _repo_config():
 
 
 def test_load_real_catalog_and_guidelines():
-    knowledge = Knowledge.load(_repo_config())
-    assert len(knowledge.codes) == 404
+    config = _repo_config()
+    supplied = json.loads((config.root / "data" / "icd_catalog.json").read_text(encoding="utf-8"))
+    knowledge = Knowledge.load(config)
+    for entry in supplied:
+        assert entry["code"] in knowledge.codes
+    assert len(knowledge.codes) >= len(supplied)
     assert len(knowledge.guideline_ids) == 45
     assert "BA41" in knowledge.codes
 
