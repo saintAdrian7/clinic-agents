@@ -19,6 +19,10 @@ pip install -r requirements.txt
 python -m pipeline run <notes-file>
 ```
 
+For the Docker path, the notes file must sit under the repository directory (it is mounted
+at `/work`) and be passed as a relative path, e.g. `docker compose run --rm coder run
+examples/notes.jsonl`; local runs take any path.
+
 Input is a JSON array, JSONL, or plain text (blank-line-separated blocks). Output is JSONL
 on stdout and in `out/results.jsonl`, one line per input note, no exceptions — status is
 `assigned`, `provisional`, or `unresolved`. With no API key set, every note comes out
@@ -36,29 +40,26 @@ the matching env var; see `.env.example`.
 
 ## Output record
 
-`status` — assigned / provisional / unresolved. `codes` — each with title, rationale, and
-`evidence` entries of kind `note` (exact words from the note), `catalog` (code) or
-`guideline` (GDL id). `candidates` — entries considered but not separable, each with the
-discriminating information that is missing. `confidence` plus `would_raise_confidence` /
-`would_lower_confidence`. `unresolved` — item and reason for anything the system could not
-place, including a partial note. `data_quality_flags` — problems noticed in the corpus.
-`pipeline_notes` — what the validator changed and why, for audit.
+`status` — assigned / provisional / unresolved. `codes` — title, rationale, and `evidence`
+entries: `note` (exact note words), `catalog` (code), or `guideline` (GDL id). `candidates` —
+considered but not separable, with what's missing to decide. `confidence` plus
+`would_raise_confidence` / `would_lower_confidence`. `unresolved` — item and reason, including
+partial notes. `data_quality_flags` — corpus problems noticed. `pipeline_notes` — validator
+changes, for audit.
 
 ## How it works
 
 Note file → loader (`notes.py`, format-sniffing, never drops a record) → one prompt per note
-carrying catalogue + guidelines + the refusal policy → model returns a JSON decision →
-validator → JSONL line. A model failure, a timeout, or unparseable JSON becomes an
-`unresolved` record for that note; the run continues.
+(catalogue + guidelines + refusal policy) → model JSON decision → validator → JSONL line. A
+model failure, timeout, or unparseable JSON becomes an `unresolved` record; the run continues.
 
 ## Repo map
 
-`pipeline/cli.py` argument parsing and the run loop; `notes.py` multi-format loader;
-`knowledge.py` loads catalogue + guidelines + additions and renders the prompt blocks;
-`prompt.py` the system prompt; `llm/` provider adapters (openai_compat, anthropic) with
-retry-once; `models.py` the decision dataclasses and a tolerant parser for model JSON;
-`validate.py` the invariants; `coder.py` ties one note to one decision. `data/` is what you
-supplied, untouched. `data_added/` is ours, separate so the diff is legible. `tests/` — 46
+`pipeline/cli.py` args + run loop; `notes.py` multi-format loader; `knowledge.py` loads
+catalogue + guidelines + additions, renders prompt blocks; `prompt.py` the system prompt;
+`llm/` provider adapters (openai_compat, anthropic) with retry-once; `models.py` decision
+dataclasses + tolerant JSON parser; `validate.py` the invariants; `coder.py` ties note to
+decision. `data/` is supplied, untouched; `data_added/` is ours, kept separate. `tests/` — 51
 tests, `python -m pytest -q`.
 
 ## What the data made us decide, and what we decided against
