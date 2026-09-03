@@ -23,6 +23,11 @@ def validate(decision: Decision, knowledge: Knowledge) -> Decision:
             decision.unresolved.append({"item": f"proposed code {proposal.code} ({proposal.title})",
                                         "reason": "code does not exist in the catalogue in use"})
             continue
+        catalogue_title = knowledge.codes[proposal.code]["title"]
+        if proposal.title.strip().casefold() != catalogue_title.strip().casefold():
+            notes.append(f"validator: title for {proposal.code} corrected from "
+                         f"'{proposal.title}' to catalogue title '{catalogue_title}'")
+            proposal.title = catalogue_title
         has_note_quote = any(e.kind == "note" and e.quote.strip() for e in proposal.evidence)
         cites_source = any(e.kind in ("guideline", "catalog") and e.ref for e in proposal.evidence)
         bad_gdl = [e.ref for e in proposal.evidence
@@ -40,6 +45,15 @@ def validate(decision: Decision, knowledge: Knowledge) -> Decision:
             continue
         kept.append(proposal)
     decision.codes = kept
+
+    for candidate in decision.candidates:
+        if candidate.code not in knowledge.codes:
+            continue
+        catalogue_title = knowledge.codes[candidate.code]["title"]
+        if candidate.title.strip().casefold() != catalogue_title.strip().casefold():
+            notes.append(f"validator: title for {candidate.code} corrected from "
+                         f"'{candidate.title}' to catalogue title '{catalogue_title}'")
+            candidate.title = catalogue_title
 
     if decision.status in ("assigned", "provisional") and not decision.codes:
         notes.append("validator: status was "

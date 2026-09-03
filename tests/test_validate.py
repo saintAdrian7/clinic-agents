@@ -123,6 +123,44 @@ def test_high_confidence_with_candidates_moved_to_moderate():
     assert any("GDL-040" in n for n in result.pipeline_notes)
 
 
+def test_proposal_title_drift_corrected_to_catalogue_title():
+    decision = Decision(
+        note_id="n1", status="assigned",
+        codes=[CodeProposal(
+            code="BA40", title="Wrong title", rationale="documented",
+            evidence=[
+                Evidence(kind="note", ref="", quote="patient has heart failure"),
+                Evidence(kind="guideline", ref="GDL-004", quote="Fever is coded when no cause is found."),
+            ],
+        )],
+        confidence="high",
+    )
+    result = validate(decision, _knowledge())
+    assert result.codes[0].title == "Heart failure"
+    assert any("title for BA40 corrected from 'Wrong title' to catalogue title 'Heart failure'" in n
+              for n in result.pipeline_notes)
+
+
+def test_candidate_title_drift_corrected_to_catalogue_title():
+    decision = Decision(
+        note_id="n1", status="assigned",
+        codes=[CodeProposal(
+            code="BA40", title="Heart failure", rationale="documented",
+            evidence=[
+                Evidence(kind="note", ref="", quote="patient has heart failure"),
+                Evidence(kind="guideline", ref="GDL-004", quote="Fever is coded when no cause is found."),
+            ],
+        )],
+        candidates=[Candidate(code="MD11", title="Wrong candidate title", missing_discriminator="cause")],
+        confidence="high",
+    )
+    result = validate(decision, _knowledge())
+    matching = [c for c in result.candidates if c.code == "MD11"]
+    assert matching[0].title == "Fever"
+    assert any("title for MD11 corrected from 'Wrong candidate title' to catalogue title 'Fever'" in n
+              for n in result.pipeline_notes)
+
+
 def test_fully_valid_decision_passes_through_untouched():
     decision = _valid_decision()
     result = validate(decision, _knowledge())
