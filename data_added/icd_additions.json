@@ -1,0 +1,52 @@
+[
+  {
+    "code": "4A44.2",
+    "title": "Giant cell arteritis",
+    "chapter": "04 Diseases of the immune system",
+    "synonyms": ["temporal arteritis", "cranial arteritis"],
+    "provenance": {
+      "source": "WHO ICD-11 for Mortality and Morbidity Statistics (MMS), 01/2023 release, icd.who.int; verified against the official MMS export text (entity title and description \"Arteritis, often granulomatous, usually affecting the aorta and/or its major branches... Often involves the temporal artery... often associated with polymyalgia rheumatica\" match exactly) and cross-checked at findacode.com/icd-11/code-1929970386.html and the ICD-11 infobox on the Wikipedia article \"Giant cell arteritis\".",
+      "reason": "GDL-014 (Primary headache disorders as a class) steers new headache beginning after age fifty with jaw discomfort on chewing, scalp tenderness, or visual disturbance onto the large-vessel vasculitis pathway, and the supplied catalogue (data/icd_catalog.json) has no entry for giant cell arteritis or any vasculitis, only unrelated chapter-04 entries (primary immunodeficiency, systemic lupus erythematosus, anaphylaxis, allergic rhinitis, urticaria, angio-oedema)."
+    }
+  },
+  {
+    "code": "1B71.Z",
+    "title": "Necrotising fasciitis, unspecified",
+    "chapter": "01 Certain infectious or parasitic diseases",
+    "synonyms": ["necrotizing fasciitis", "flesh-eating disease"],
+    "provenance": {
+      "source": "WHO ICD-11 MMS 01/2023 release, icd.who.int; verified against the official MMS export text, which lists 1B71 Necrotising fasciitis with children 1B71.0 Streptococcal necrotising fasciitis, 1B71.1 Polymicrobial necrotising fasciitis, 1B71.2 Neonatal necrotising fasciitis, 1B71.Y Necrotising fasciitis due to other specified bacterial infection, and 1B71.Z Necrotising fasciitis, unspecified, and cross-checked at findacode.com/icd-11/code-522973276/unspecified.html and dermnetnz.org/topics/necrotising-fasciitis (which lists the identical 1B71 subcode set).",
+      "reason": "GDL-032 (Cellulitis and the rapidly progressive soft tissue infection) steers pain disproportionate to visible skin findings, rapid progression, systemic toxicity, skin anaesthesia, or crepitus onto the necrotising process, and the supplied catalogue has no entry for necrotising fasciitis (only 1B70 Bacterial skin infection and 1B72 Cutaneous abscess); the unspecified-organism subcode 1B71.Z is used rather than the streptococcal-specific 1B71.0 because GDL-032's text does not document a causative organism, and GDL-002 reserves organism-specific entries for when one is documented."
+    }
+  },
+  {
+    "code": "3A51.2",
+    "title": "Sickle cell disease with crisis",
+    "chapter": "03 Diseases of the blood or blood-forming organs",
+    "synonyms": ["acute chest syndrome", "sickle cell acute chest syndrome"],
+    "provenance": {
+      "source": "WHO ICD-11 MMS 01/2023 release, icd.who.int; verified against the official MMS export text (3A51 Sickle cell disorders or other haemoglobinopathies, with children 3A51.0 Sickle cell trait, 3A51.1 Sickle cell disease without crisis, 3A51.2 Sickle cell disease with crisis, inclusion note \"Hb-SS disease with crisis\") and cross-checked at findacode.com/icd-11/code-55071409.html and findacode.com/icd-11/code-975559344.html.",
+      "reason": "GDL-043 (Sickle cell painful crisis) steers fever, chest signs, or hypoxia in a patient with known sickle cell disease onto acute chest syndrome as a distinct, higher-mortality escalation from an uncomplicated crisis, and the supplied catalogue's only sickle-cell-crisis entry (3A11 Sickle cell crisis) is scoped by its own listed synonyms to vaso-occlusive/painful crisis, leaving no entry for the acute chest syndrome escalation; ICD-11 itself has no distinct acute chest syndrome code, so the closest real entry, sickle cell disease with crisis, is added here with acute chest syndrome recorded only as a synonym rather than invented as a separate code."
+    }
+  },
+  {
+    "code": "JA20.Z",
+    "title": "Pre-existing hypertension complicating pregnancy, childbirth or the puerperium, unspecified",
+    "chapter": "18 Pregnancy, childbirth or the puerperium",
+    "synonyms": ["chronic hypertension in pregnancy", "pre-existing hypertension in pregnancy"],
+    "provenance": {
+      "source": "WHO ICD-11 MMS 01/2023 release, icd.who.int; verified against the official MMS export text (JA20 Pre-existing hypertension complicating pregnancy, childbirth or the puerperium, defined as blood pressure above 140/90 mmHg prior to the 20th week of pregnancy or persisting beyond 12 weeks postpartum, with children JA20.0 essential, JA20.1-.3 heart/renal, JA20.4 secondary, JA20.Y other specified, JA20.Z unspecified) and cross-checked at findacode.com/icd-11/code-183230446.html and findacode.com/icd-11/block-761947693.html (which lists JA20-JA2Z as the pregnancy-hypertension block excluded from the general essential-hypertension block).",
+      "reason": "GDL-028 (Hypertensive disorders of pregnancy) states hypertension recorded before twenty weeks of gestation belongs to the chronic hypertension group carried into pregnancy, and the supplied catalogue has no entry for that group (only JA60 Gestational hypertension, JA63/JA64 pre-eclampsia and JA65 eclampsia, all of which describe hypertension arising after twenty weeks); the real ICD-11 parent code JA20 already denotes a different condition (Spontaneous abortion) in the supplied catalogue, so the unspecified-subtype child code JA20.Z is used instead to avoid colliding with that existing entry while still representing pre-existing hypertension carried into pregnancy."
+    }
+  },
+  {
+    "code": "1F41",
+    "title": "Malaria due to Plasmodium vivax",
+    "chapter": "01 Certain infectious or parasitic diseases",
+    "synonyms": ["vivax malaria", "P. vivax malaria", "benign tertian malaria"],
+    "provenance": {
+      "source": "WHO ICD-11 MMS 01/2023 release, icd.who.int; verified against the official MMS export text (1F41 Malaria due to Plasmodium vivax, with children 1F41.0 with rupture of spleen, 1F41.Y with other complications, 1F41.Z without complication; exclusion note \"when mixed with Plasmodium falciparum (1F40)\") and cross-checked at findacode.com/icd-11/code-1203794080.html and findacode.com/icd-11/block-1439886552.html.",
+      "reason": "GDL-022 (Parasitological confirmation) requires species-specific malaria entries to record a positive blood film or rapid diagnostic test, and the supplied catalogue has no species-specific entry for Plasmodium vivax malaria, only 1F2Z Plasmodium falciparum malaria, 1F40 Malaria without parasitological confirmation, and 1F45 Severe malaria."
+    }
+  }
+]
