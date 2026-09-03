@@ -39,9 +39,12 @@ class BaseProvider:
 def _parse_json(text: str) -> dict:
     cleaned = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     try:
-        return json.loads(cleaned)
+        parsed = json.loads(cleaned)
     except json.JSONDecodeError as e:
         raise LLMError(f"model returned invalid JSON: {e}") from e
+    if not isinstance(parsed, dict):
+        raise LLMError(f"model returned JSON {type(parsed).__name__}, expected an object")
+    return parsed
 
 
 def get_provider(config: Config, client: httpx.Client | None = None) -> BaseProvider:

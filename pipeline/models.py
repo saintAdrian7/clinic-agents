@@ -1,6 +1,23 @@
 from dataclasses import asdict, dataclass, field
 
 
+def _unresolved_items(value) -> list[dict]:
+    """Normalise the unresolved field; a bare string keeps its reason rather than being dropped."""
+    if value in (None, "", [], {}):
+        return []
+    if isinstance(value, (str, dict)):
+        value = [value]
+    if not isinstance(value, list):
+        return [{"item": "entire note", "reason": str(value)}]
+    items = []
+    for entry in value:
+        if isinstance(entry, dict):
+            items.append(entry)
+        else:
+            items.append({"item": "entire note", "reason": str(entry)})
+    return items
+
+
 @dataclass
 class Note:
     id: str
@@ -57,25 +74,55 @@ class Decision:
 
     @classmethod
     def from_llm(cls, note_id: str, payload: dict) -> "Decision":
-        """Build from model JSON, tolerating missing or extra keys."""
+        """Build from model JSON, tolerating missing, extra or wrongly-typed keys."""
+        dropped: list[str] = []
+
+        def objects(value, where: str) -> list[dict]:
+            """Keep only the dict entries of a list-shaped field, recording what was skipped."""
+            if isinstance(value, dict):
+                value = [value]
+            if not isinstance(value, list):
+                if value not in (None, ""):
+                    dropped.append(f"{where} was {type(value).__name__}, not a list; ignored")
+                return []
+            kept = []
+            for item in value:
+                if isinstance(item, dict):
+                    kept.append(item)
+                else:
+                    dropped.append(f"{where} entry {item!r} was not an object; ignored")
+            return kept
+
         def ev(items):
             return [Evidence(kind=str(e.get("kind", "")), ref=str(e.get("ref", "")),
-                             quote=str(e.get("quote", ""))) for e in items or []]
+                             quote=str(e.get("quote", ""))) for e in objects(items, "evidence")]
+
+        facts = payload.get("extracted_facts")
+        if facts is not None and not isinstance(facts, dict):
+            dropped.append(f"extracted_facts was {type(facts).__name__}, not an object; ignored")
+            facts = None
+        flags = payload.get("data_quality_flags")
+        if isinstance(flags, (str, dict)):
+            flags = [flags]
+        notes = payload.get("pipeline_notes")
+        if isinstance(notes, (str, dict)):
+            notes = [notes]
         return cls(
             note_id=note_id,
             status=str(payload.get("status", "unresolved")),
-            extracted_facts=payload.get("extracted_facts") or {},
+            extracted_facts=facts or {},
             codes=[CodeProposal(code=str(c.get("code", "")), title=str(c.get("title", "")),
                                 rationale=str(c.get("rationale", "")), evidence=ev(c.get("evidence")))
-                   for c in payload.get("codes") or []],
+                   for c in objects(payload.get("codes"), "codes")],
             candidates=[Candidate(code=str(c.get("code", "")), title=str(c.get("title", "")),
                                   missing_discriminator=str(c.get("missing_discriminator", "")))
-                        for c in payload.get("candidates") or []],
+                        for c in objects(payload.get("candidates"), "candidates")],
             confidence=str(payload.get("confidence", "low")),
             confidence_rationale=str(payload.get("confidence_rationale", "")),
             would_raise_confidence=str(payload.get("would_raise_confidence", "")),
             would_lower_confidence=str(payload.get("would_lower_confidence", "")),
-            unresolved=payload.get("unresolved") or [],
-            data_quality_flags=[str(f) for f in payload.get("data_quality_flags") or []],
-            pipeline_notes=[str(n) for n in payload.get("pipeline_notes") or []],
+            unresolved=_unresolved_items(payload.get("unresolved")),
+            data_quality_flags=[str(f) for f in flags or []],
+            pipeline_notes=[str(n) for n in notes or []]
+            + [f"parser: {d}" for d in dropped],
         )

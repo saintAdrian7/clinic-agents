@@ -147,3 +147,12 @@ def test_openai_compat_sends_response_format_by_default(tmp_path, monkeypatch):
     )
     provider.complete([{"role": "user", "content": "hi"}])
     assert captured["response_format"] == {"type": "json_object"}
+
+
+def test_json_mode_rejects_non_object_payload(tmp_path, monkeypatch):
+    """A JSON array is not a decision; it must surface as LLMError, not flow downstream."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    body = {"content": [{"type": "text", "text": "[1, 2, 3]"}]}
+    provider = get_provider(make_config(tmp_path, "anthropic"), client=client_returning(200, body))
+    with pytest.raises(LLMError):
+        provider.complete([{"role": "user", "content": "x"}], json_mode=True)

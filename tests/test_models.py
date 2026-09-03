@@ -43,6 +43,26 @@ def test_from_llm_round_trips_codes_and_evidence():
     assert decision.candidates[0].missing_discriminator == "laterality"
 
 
+def test_from_llm_survives_wrongly_typed_fields():
+    """A live model returned codes:[0]; malformed fields must degrade, not raise."""
+    payload = {
+        "status": "assigned",
+        "extracted_facts": "not an object",
+        "codes": [0, {"code": "A1", "title": "T", "evidence": ["bare string"]}],
+        "candidates": "nope",
+        "unresolved": ["insufficient information"],
+        "data_quality_flags": "single flag",
+    }
+    decision = Decision.from_llm("note-4", payload)
+    assert [c.code for c in decision.codes] == ["A1"]
+    assert decision.codes[0].evidence == []
+    assert decision.extracted_facts == {}
+    assert decision.candidates == []
+    assert decision.unresolved == [{"item": "entire note", "reason": "insufficient information"}]
+    assert decision.data_quality_flags == ["single flag"]
+    assert any("not an object" in n for n in decision.pipeline_notes)
+
+
 def test_to_dict_is_json_serializable():
     decision = Decision.unresolved_decision("note-3", "no discernible diagnosis")
     payload = decision.to_dict()
