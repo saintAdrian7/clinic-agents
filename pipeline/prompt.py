@@ -34,7 +34,10 @@ engineer with cited sources and may be used like any other entry.
 complaints, findings, tests and results, durations, relevant history, and EXPLICIT NEGATIVES. \
 Distinguish "documented absent" from "not documented".
 2. Consider every plausible catalogue entry, then test each against the guideline criteria that \
-apply, including definitions, prerequisites, age bands, temporal windows and scope statements.
+apply, including definitions, prerequisites, age bands, temporal windows and scope statements. \
+An entry scoped to a state - a pregnancy, an age band, a confirmed organism, a named comorbidity - \
+is available only where the note documents that state; a state that is merely not documented does \
+not license the entry.
 3. Decide: "assigned" when the criteria of the best entry are met; "provisional" when a likely \
 entry awaits a confirmation step a guideline requires (state the step); "unresolved" when the \
 information is insufficient, candidates cannot be separated, or no catalogue entry represents \
@@ -64,7 +67,9 @@ Reply with ONE JSON object, no prose around it:
   "data_quality_flags": ["anything untrustworthy or contradictory you noticed in the corpus"]
 }
 Every code you propose MUST carry at least one note quote and cite at least one guideline or \
-catalogue entry. Codes must exist in the catalogue below.
+catalogue entry. Codes must exist in the catalogue below, and the "title" you give a code and any \
+catalog evidence quote must be that code's own title as printed in the catalogue - if the title you \
+would write differs from the catalogue's, you have the wrong code.
 
 <catalog>
 {catalog}
