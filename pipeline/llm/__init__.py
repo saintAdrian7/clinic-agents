@@ -20,7 +20,14 @@ class BaseProvider:
 
     def complete(self, messages: list[dict], json_mode: bool = False) -> str | dict:
         """Run one completion; with json_mode, parse the reply as JSON or raise LLMError."""
-        response = self._request(messages)
+        try:
+            response = self._request(messages)
+        except httpx.HTTPError:
+            time.sleep(2)
+            try:
+                response = self._request(messages)
+            except httpx.HTTPError as e:
+                raise LLMError(f"{self.__class__.__name__}: transport error: {e}") from e
         if response.status_code in (429,) or response.status_code >= 500:
             time.sleep(2)
             response = self._request(messages)

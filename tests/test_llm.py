@@ -96,6 +96,43 @@ def test_server_error_retries_then_raises(tmp_path, monkeypatch):
     assert len(calls) == 2
 
 
+def test_transport_error_once_then_success_returns_text(tmp_path, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) == 1:
+            raise httpx.ConnectError("boom", request=request)
+        return httpx.Response(200, json=ANTHROPIC_BODY)
+
+    provider = get_provider(
+        make_config(tmp_path, "anthropic"),
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    assert provider.complete([{"role": "user", "content": "hi"}]) == '{"score": 0.8}'
+    assert len(calls) == 2
+
+
+def test_transport_error_twice_raises_llm_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        raise httpx.ConnectError("boom", request=request)
+
+    provider = get_provider(
+        make_config(tmp_path, "anthropic"),
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    with pytest.raises(LLMError, match="transport error"):
+        provider.complete([{"role": "user", "content": "hi"}])
+    assert len(calls) == 2
+
+
 def test_unknown_provider_raises(tmp_path):
     with pytest.raises(LLMError, match="unknown"):
         get_provider(make_config(tmp_path, "unknown"))
