@@ -1,0 +1,10 @@
+services:
+  coder:
+    build: .
+    environment:
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+      - MISTRAL_API_KEY
+      - SILICONFLOW_API_KEY
+    volumes:
+      - ./:/work
