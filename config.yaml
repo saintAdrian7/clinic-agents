@@ -1,8 +1,8 @@
 llm:
   provider: openai_compat          # openai_compat | anthropic
-  model: gpt-4o
-  api_key_env: OPENAI_API_KEY
-  base_url: https://api.openai.com/v1
+  model: Qwen/Qwen2.5-72B-Instruct
+  api_key_env: SILICONFLOW_API_KEY
+  base_url: https://api.siliconflow.com/v1
   max_tokens: 4096
   temperature: 0
 paths:
