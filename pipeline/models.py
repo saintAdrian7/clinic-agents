@@ -1,0 +1,81 @@
+from dataclasses import asdict, dataclass, field
+
+
+@dataclass
+class Note:
+    id: str
+    text: str
+
+
+@dataclass
+class Evidence:
+    kind: str  # note | catalog | guideline
+    ref: str   # "" for note quotes, catalogue code, or guideline id
+    quote: str
+
+
+@dataclass
+class CodeProposal:
+    code: str
+    title: str
+    rationale: str
+    evidence: list[Evidence] = field(default_factory=list)
+
+
+@dataclass
+class Candidate:
+    code: str
+    title: str
+    missing_discriminator: str
+
+
+@dataclass
+class Decision:
+    note_id: str
+    status: str  # assigned | provisional | unresolved
+    extracted_facts: dict = field(default_factory=dict)
+    codes: list[CodeProposal] = field(default_factory=list)
+    candidates: list[Candidate] = field(default_factory=list)
+    confidence: str = "low"
+    confidence_rationale: str = ""
+    would_raise_confidence: str = ""
+    would_lower_confidence: str = ""
+    unresolved: list[dict] = field(default_factory=list)
+    data_quality_flags: list[str] = field(default_factory=list)
+    pipeline_notes: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """Serialize to a JSON-ready dict."""
+        return asdict(self)
+
+    @classmethod
+    def unresolved_decision(cls, note_id: str, reason: str) -> "Decision":
+        """Decision for a note the pipeline could not place; the reason is preserved."""
+        return cls(note_id=note_id, status="unresolved",
+                   unresolved=[{"item": "entire note", "reason": reason}],
+                   confidence="low", confidence_rationale=reason)
+
+    @classmethod
+    def from_llm(cls, note_id: str, payload: dict) -> "Decision":
+        """Build from model JSON, tolerating missing or extra keys."""
+        def ev(items):
+            return [Evidence(kind=str(e.get("kind", "")), ref=str(e.get("ref", "")),
+                             quote=str(e.get("quote", ""))) for e in items or []]
+        return cls(
+            note_id=note_id,
+            status=str(payload.get("status", "unresolved")),
+            extracted_facts=payload.get("extracted_facts") or {},
+            codes=[CodeProposal(code=str(c.get("code", "")), title=str(c.get("title", "")),
+                                rationale=str(c.get("rationale", "")), evidence=ev(c.get("evidence")))
+                   for c in payload.get("codes") or []],
+            candidates=[Candidate(code=str(c.get("code", "")), title=str(c.get("title", "")),
+                                  missing_discriminator=str(c.get("missing_discriminator", "")))
+                        for c in payload.get("candidates") or []],
+            confidence=str(payload.get("confidence", "low")),
+            confidence_rationale=str(payload.get("confidence_rationale", "")),
+            would_raise_confidence=str(payload.get("would_raise_confidence", "")),
+            would_lower_confidence=str(payload.get("would_lower_confidence", "")),
+            unresolved=payload.get("unresolved") or [],
+            data_quality_flags=[str(f) for f in payload.get("data_quality_flags") or []],
+            pipeline_notes=[str(n) for n in payload.get("pipeline_notes") or []],
+        )
