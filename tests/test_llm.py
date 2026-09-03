@@ -208,6 +208,30 @@ def test_openai_compat_sends_response_format_by_default(tmp_path, monkeypatch):
     assert captured["response_format"] == {"type": "json_object"}
 
 
+def test_non_json_200_response_raises_llm_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+
+    def handler(request):
+        return httpx.Response(200, content=b"not json at all", headers={"content-type": "text/plain"})
+
+    provider = get_provider(
+        make_config(tmp_path, "anthropic"),
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    with pytest.raises(LLMError, match="unexpected response shape"):
+        provider.complete([{"role": "user", "content": "hi"}])
+
+
+def test_empty_choices_200_response_raises_llm_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("MISTRAL_API_KEY", "k")
+    provider = get_provider(
+        make_config(tmp_path, "openai_compat", api_key_env="MISTRAL_API_KEY"),
+        client=client_returning(200, {"choices": []}),
+    )
+    with pytest.raises(LLMError, match="unexpected response shape"):
+        provider.complete([{"role": "user", "content": "hi"}])
+
+
 def test_json_mode_rejects_non_object_payload(tmp_path, monkeypatch):
     """A JSON array is not a decision; it must surface as LLMError, not flow downstream."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")

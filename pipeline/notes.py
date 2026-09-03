@@ -9,7 +9,7 @@ _TEXT_KEYS = ("text", "note", "note_text", "body", "content")
 
 def load_notes(path: Path) -> list[Note]:
     """Load notes from a JSON array, JSONL, or plain-text file; never drop a record."""
-    raw = path.read_text(encoding="utf-8").strip()
+    raw = path.read_text(encoding="utf-8-sig").strip()
     if not raw:
         return []
     try:
@@ -41,9 +41,12 @@ def _loads_or_raw(line: str):
 
 
 def _to_note(item, index: int) -> Note:
-    """Coerce one input record (dict or string) into a Note with a stable id."""
+    """Coerce one input record (dict, string, or other JSON value) into a Note with a stable id."""
     if isinstance(item, str):
         return Note(id=f"note-{index + 1:03d}", text=item)
+    if not isinstance(item, dict):
+        text = json.dumps(item, ensure_ascii=False)
+        return Note(id=f"note-{index + 1:03d}", text=text or str(item))
     note_id = next((str(item[k]) for k in _ID_KEYS if item.get(k)), f"note-{index + 1:03d}")
     text = next((str(item[k]) for k in _TEXT_KEYS if item.get(k)), "")
     if not text:

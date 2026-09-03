@@ -51,6 +51,31 @@ def test_load_single_block_text(tmp_path):
     assert notes[0].text == "Just one note with no blank lines."
 
 
+def test_load_bom_prefixed_jsonl_parses_as_json(tmp_path):
+    path = tmp_path / "notes.jsonl"
+    lines = [
+        json.dumps({"id": "n-1", "text": "First note."}),
+        json.dumps({"id": "n-2", "text": "Second note."}),
+    ]
+    path.write_text("﻿" + "\n".join(lines), encoding="utf-8")
+    notes = load_notes(path)
+    assert len(notes) == 2
+    assert [n.id for n in notes] == ["n-1", "n-2"]
+    assert notes[0].text == "First note."
+    assert notes[1].text == "Second note."
+
+
+def test_load_json_array_with_non_dict_item_is_coerced_not_dropped(tmp_path):
+    path = tmp_path / "notes.json"
+    path.write_text(json.dumps([{"id": "a", "text": "x"}, 42]), encoding="utf-8")
+    notes = load_notes(path)
+    assert len(notes) == 2
+    assert notes[0].id == "a"
+    assert notes[0].text == "x"
+    assert notes[1].id == "note-002"
+    assert notes[1].text == "42"
+
+
 def test_load_malformed_jsonl_line_kept_as_raw_text(tmp_path):
     path = tmp_path / "notes.jsonl"
     good_line = json.dumps({"id": "n-1", "text": "Well-formed note."})

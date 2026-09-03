@@ -33,7 +33,10 @@ class BaseProvider:
                 raise LLMError(f"{self.__class__.__name__}: transport error: {error}") from error
         if response.status_code != 200:
             raise LLMError(f"{self.__class__.__name__}: HTTP {response.status_code}: {response.text[:200]}")
-        text = self._extract(response.json())
+        try:
+            text = self._extract(response.json())
+        except (ValueError, KeyError, IndexError, TypeError) as e:
+            raise LLMError(f"{self.__class__.__name__}: unexpected response shape: {e}") from e
         return _parse_json(text) if json_mode else text
 
     def _attempt(self, messages: list[dict]) -> tuple[httpx.Response | None, httpx.HTTPError | None]:

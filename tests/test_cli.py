@@ -81,3 +81,22 @@ def test_missing_input_file_returns_1(tmp_path, monkeypatch):
     root = _make_root(tmp_path)
     exit_code = main(["run", str(tmp_path / "does-not-exist.jsonl")], root=root)
     assert exit_code == 1
+
+
+def test_unknown_provider_degrades_to_unresolved_instead_of_crashing(tmp_path, monkeypatch):
+    monkeypatch.delenv("MISSING_KEY_XYZ", raising=False)
+    root = _make_root(tmp_path)
+    (root / "config.yaml").write_text(
+        CONFIG_YAML.replace("provider: anthropic", "provider: nonsense"), encoding="utf-8"
+    )
+    input_path = tmp_path / "notes.jsonl"
+    input_path.write_text(json.dumps({"id": "n-1", "text": "Patient has fever."}), encoding="utf-8")
+
+    exit_code = main(["run", str(input_path)], root=root)
+    assert exit_code == 0
+
+    out_path = root / "out" / "results.jsonl"
+    records = [json.loads(line) for line in out_path.read_text(encoding="utf-8").strip().splitlines()]
+    assert len(records) == 1
+    for record in records:
+        assert record["status"] == "unresolved"

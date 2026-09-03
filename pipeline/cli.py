@@ -3,10 +3,12 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+
 from pipeline.coder import code_note
 from pipeline.config import Config, ConfigError
 from pipeline.knowledge import Knowledge
-from pipeline.llm import get_provider
+from pipeline.llm import LLMError, get_provider
 from pipeline.notes import load_notes
 
 
@@ -25,13 +27,13 @@ def main(argv: list[str] | None = None, root: Path | None = None) -> int:
             print(f"Input file not found: {input_path}", file=sys.stderr)
             return 1
         notes = load_notes(input_path)
-    except (ConfigError, OSError, ValueError) as e:
+    except (ConfigError, OSError, ValueError, yaml.YAMLError) as e:
         print(e, file=sys.stderr)
         return 1
 
     try:
         provider = get_provider(config)
-    except ConfigError as e:
+    except (ConfigError, LLMError) as e:
         print(f"warning: {e} - running without a model; all notes will be unresolved",
               file=sys.stderr)
         provider = None
