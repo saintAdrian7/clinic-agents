@@ -2,7 +2,9 @@ import json
 import shutil
 from pathlib import Path
 
+import pipeline.cli as cli
 from pipeline.cli import main
+from pipeline.models import Decision
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -52,6 +54,26 @@ def test_run_with_no_key_produces_unresolved_jsonl_for_every_note(tmp_path, monk
     for record in records:
         assert record["status"] == "unresolved"
         assert any("no model" in item["reason"] for item in record["unresolved"])
+
+
+def test_decision_with_non_ascii_confidence_rationale_does_not_crash(tmp_path, monkeypatch):
+    monkeypatch.delenv("MISSING_KEY_XYZ", raising=False)
+    root = _make_root(tmp_path)
+    input_path = tmp_path / "notes.jsonl"
+    input_path.write_text(json.dumps({"id": "n-1", "text": "Patient has fever."}), encoding="utf-8")
+
+    def fake_code_note(note, provider, knowledge):
+        return Decision(note_id=note.id, status="unresolved",
+                        confidence="low", confidence_rationale="score ≥ threshold")
+
+    monkeypatch.setattr(cli, "code_note", fake_code_note)
+
+    exit_code = main(["run", str(input_path)], root=root)
+    assert exit_code == 0
+
+    out_path = root / "out" / "results.jsonl"
+    record = json.loads(out_path.read_text(encoding="utf-8").strip())
+    assert record["confidence_rationale"] == "score ≥ threshold"
 
 
 def test_missing_input_file_returns_1(tmp_path, monkeypatch):

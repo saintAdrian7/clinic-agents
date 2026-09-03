@@ -12,6 +12,9 @@ from pipeline.notes import load_notes
 
 def main(argv: list[str] | None = None, root: Path | None = None) -> int:
     """Entry point for python -m pipeline; returns process exit code."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     args = _parse(argv)
     root = root or Path.cwd()
     try:
