@@ -133,6 +133,28 @@ def test_transport_error_twice_raises_llm_error(tmp_path, monkeypatch):
     assert len(calls) == 2
 
 
+def test_status_retry_path_also_guards_against_transport_error(tmp_path, monkeypatch):
+    """A 500 on attempt 1 followed by a transport error on the status-retry must raise LLMError,
+    not leak the raw httpx exception."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx.Response(500, json={})
+        raise httpx.ConnectError("boom", request=request)
+
+    provider = get_provider(
+        make_config(tmp_path, "anthropic"),
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    with pytest.raises(LLMError, match="transport error"):
+        provider.complete([{"role": "user", "content": "hi"}])
+    assert len(calls) == 2
+
+
 def test_unknown_provider_raises(tmp_path):
     with pytest.raises(LLMError, match="unknown"):
         get_provider(make_config(tmp_path, "unknown"))

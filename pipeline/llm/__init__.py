@@ -20,21 +20,28 @@ class BaseProvider:
 
     def complete(self, messages: list[dict], json_mode: bool = False) -> str | dict:
         """Run one completion; with json_mode, parse the reply as JSON or raise LLMError."""
-        try:
-            response = self._request(messages)
-        except httpx.HTTPError:
+        response, error = self._attempt(messages)
+        if error is not None:
             time.sleep(2)
-            try:
-                response = self._request(messages)
-            except httpx.HTTPError as e:
-                raise LLMError(f"{self.__class__.__name__}: transport error: {e}") from e
-        if response.status_code in (429,) or response.status_code >= 500:
+            response, error = self._attempt(messages)
+            if error is not None:
+                raise LLMError(f"{self.__class__.__name__}: transport error: {error}") from error
+        elif response.status_code in (429,) or response.status_code >= 500:
             time.sleep(2)
-            response = self._request(messages)
+            response, error = self._attempt(messages)
+            if error is not None:
+                raise LLMError(f"{self.__class__.__name__}: transport error: {error}") from error
         if response.status_code != 200:
             raise LLMError(f"{self.__class__.__name__}: HTTP {response.status_code}: {response.text[:200]}")
         text = self._extract(response.json())
         return _parse_json(text) if json_mode else text
+
+    def _attempt(self, messages: list[dict]) -> tuple[httpx.Response | None, httpx.HTTPError | None]:
+        """Call _request once, turning a transport error into a returned exception."""
+        try:
+            return self._request(messages), None
+        except httpx.HTTPError as e:
+            return None, e
 
     def _request(self, messages: list[dict]) -> httpx.Response:
         raise NotImplementedError
