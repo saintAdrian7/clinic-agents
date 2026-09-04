@@ -15,7 +15,7 @@ docker compose run --rm coder run <notes-file>
 or locally, from the repo root:
 
 ```
-pip install -r requirements.txt
+pip install -r requirements.txt 
 python -m pipeline run <notes-file>
 ```
 
@@ -154,4 +154,4 @@ that chronic hypertension in pregnancy was ICD-11 `JA24` and necrotising fasciit
 checking the WHO ICD-11 browser showed both wrong (the real entries are the `JA20` group and
 `1B71.Z`), after which every added code was re-verified against sources before inclusion.
 
-Time spent: ~4 hours of build time inside the window.
+Time spent: ~6 hours of build time inside the window.
