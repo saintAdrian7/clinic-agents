@@ -156,7 +156,7 @@ above. A golden-test harness with graded expected outputs. A retrieval prototype
 Entailment checking — the validator now verifies quoted spans appear in their sources, but
 not that the cited text actually supports the code; that needs a separate verifier call
 given only the quote and the source, whose verdict can demote but never promote. And backoff
-that survives Mistral-style per-note throttling.
+that survives Mistral-style per-note throttling
 
 ## At 50,000 codes
 
