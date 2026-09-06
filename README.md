@@ -28,6 +28,16 @@ on stdout and in `out/results.jsonl`, one line per input note, no exceptions —
 `assigned`, `provisional`, or `unresolved`. With no API key set, every note comes out
 `unresolved` with that stated as the reason and the run exits 0.
 
+Every live run also records the raw model response per note (with a hash of the note text)
+to `out/responses.jsonl`, and `python -m pipeline replay <notes-file>` re-runs the loader,
+parser and validator over a recorded file with no model and no key — deterministically, so
+a run can be audited or the validator re-tested after changes. A note whose text no longer
+matches the recording comes back `unresolved` saying so. `evals/` holds committed runs:
+`2026-09-06-qwen2.5-72b/` is a recorded seven-note run whose `results.jsonl` replays
+byte-identically from its `responses.jsonl`, and `2026-09-03-presubmission-runs/` holds the
+earlier outputs (four Qwen runs of the same notes — the run-to-run variance claim below —
+plus one Mistral run of each size) which predate response recording and are results-only.
+
 Honest caveat: the Docker path was written to the contract but never exercised — the Docker
 daemon would not start on the dev machine. The local path is verified end to end.
 
@@ -58,9 +68,10 @@ model failure, timeout, or unparseable JSON becomes an `unresolved` record; the 
 `pipeline/cli.py` args + run loop; `notes.py` multi-format loader; `knowledge.py` loads
 catalogue + guidelines + additions, renders prompt blocks; `prompt.py` the system prompt;
 `llm/` provider adapters (openai_compat, anthropic) with retry-once; `models.py` decision
-dataclasses + tolerant JSON parser; `validate.py` the invariants; `coder.py` ties note to
-decision. `data/` is supplied, untouched; `data_added/` is ours, kept separate. `tests/` — 51
-tests, `python -m pytest -q`.
+dataclasses + tolerant JSON parser; `validate.py` the invariants; `replay.py` response
+recording + replay store; `coder.py` ties note to decision. `data/` is supplied, untouched;
+`data_added/` is ours, kept separate; `evals/` committed run artifacts. `tests/` — 63 tests,
+`python -m pytest -q`.
 
 ## What the data made us decide, and what we decided against
 
@@ -76,11 +87,18 @@ pipeline; two-stage retrieval is the documented path for a bigger catalogue, not
 The trust boundary is the validator, not the prompt. It is deterministic and
 model-independent: proposed codes must exist in the catalogue (a fabricated code becomes an
 unresolved item), every code needs both a note quote and a catalogue or guideline citation
-(evidence-free codes are demoted to candidates), unknown guideline ids are dropped, titles
-are pinned to the catalogue entry, high confidence is capped at moderate while candidates
-remain (per GDL-040), and a status with no surviving evidenced code is downgraded to
-unresolved. The title check is there because we caught it live: Qwen once emitted the real
-code `3A51.2` under the invented title "Anaemia complicating pregnancy".
+(evidence-free codes are demoted to candidates), and citations are verified against their
+sources, not just present — a note quote must appear in the note (whitespace/case-normalised),
+a guideline quote must appear in the cited guideline's text, a catalogue reference must exist,
+and catalogue quotes are pinned to the entry title. Failed checks drop the evidence entry with
+an audit note and the code demotes to candidate if nothing verified survives. Unknown
+guideline ids are dropped, titles are pinned to the catalogue entry, high confidence is capped
+at moderate while candidates remain (per GDL-040), and a status with no surviving evidenced
+code is downgraded to unresolved. The title check is there because we caught it live: Qwen
+once emitted the real code `3A51.2` under the invented title "Anaemia complicating
+pregnancy". The span check earned its keep the same day it was written — in the recorded
+`evals/` run the model justified `4A44.2` with a paraphrase rather than the note's exact
+words, and the validator demoted it with the reason logged.
 
 GDL-040 (Coding Manual s.4.1) is quoted verbatim in the prompt as the refusal policy. The
 corpus already defines when to refuse, so we did not write our own rule for it.
@@ -135,8 +153,10 @@ close the gaps we noticed, not the gaps that exist.
 
 Repeated runs per note with majority voting, which is the cheapest fix for the variance
 above. A golden-test harness with graded expected outputs. A retrieval prototype for scale.
-Semantic quote verification — the validator checks that citations exist, not that quoted text
-actually appears in the source. And backoff that survives Mistral-style per-note throttling.
+Entailment checking — the validator now verifies quoted spans appear in their sources, but
+not that the cited text actually supports the code; that needs a separate verifier call
+given only the quote and the source, whose verdict can demote but never promote. And backoff
+that survives Mistral-style per-note throttling.
 
 ## At 50,000 codes
 
