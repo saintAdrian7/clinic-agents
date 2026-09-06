@@ -61,7 +61,8 @@ class _InjectionProvider:
 
 
 def test_valid_payload_produces_assigned_decision():
-    decision = code_note(Note(id="n1", text="crushing chest pain"), _ValidProvider(), _knowledge())
+    decision = code_note(Note(id="n1", text="crushing chest pain radiating to the jaw"),
+                         _ValidProvider(), _knowledge())
     assert decision.status == "assigned"
     assert [c.code for c in decision.codes] == ["BA41"]
 

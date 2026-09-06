@@ -17,4 +17,4 @@ def code_note(note: Note, provider, knowledge: Knowledge) -> Decision:
         decision = Decision.from_llm(note.id, payload)
     except LLMError as e:
         return Decision.unresolved_decision(note.id, f"model call failed: {e}")
-    return validate(decision, knowledge)
+    return validate(decision, knowledge, note.text)

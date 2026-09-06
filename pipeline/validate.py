@@ -5,9 +5,20 @@ _STATUSES = {"assigned", "provisional", "unresolved"}
 _CONFIDENCE = {"high", "moderate", "low"}
 
 
-def validate(decision: Decision, knowledge: Knowledge) -> Decision:
+def _normalise(text: str) -> str:
+    """Collapse whitespace and casefold so quote matching survives formatting drift."""
+    return " ".join(text.split()).casefold()
+
+
+def _clip(quote: str, limit: int = 80) -> str:
+    return quote if len(quote) <= limit else quote[:limit - 3] + "..."
+
+
+def validate(decision: Decision, knowledge: Knowledge, note_text: str) -> Decision:
     """Enforce output invariants; downgrade violations to unresolved, never drop or trust them."""
     notes = decision.pipeline_notes
+    note_norm = _normalise(note_text)
+    guideline_texts = {g["id"]: g.get("text", "") for g in knowledge.guidelines}
     if decision.status not in _STATUSES:
         notes.append(f"validator: unknown status '{decision.status}' -> unresolved")
         decision.status = "unresolved"
@@ -28,18 +39,38 @@ def validate(decision: Decision, knowledge: Knowledge) -> Decision:
             notes.append(f"validator: title for {proposal.code} corrected from "
                          f"'{proposal.title}' to catalogue title '{catalogue_title}'")
             proposal.title = catalogue_title
-        has_note_quote = any(e.kind == "note" and e.quote.strip() for e in proposal.evidence)
-        cites_source = any(e.kind in ("guideline", "catalog") and e.ref for e in proposal.evidence)
-        bad_gdl = [e.ref for e in proposal.evidence
-                   if e.kind == "guideline" and e.ref not in knowledge.guideline_ids]
-        if bad_gdl:
-            notes.append(f"validator: {proposal.code} cites unknown guideline(s) {bad_gdl}; dropped citation(s)")
-            proposal.evidence = [e for e in proposal.evidence
-                                 if not (e.kind == "guideline" and e.ref in bad_gdl)]
-            cites_source = any(e.kind in ("guideline", "catalog") and e.ref for e in proposal.evidence)
+        verified = []
+        for e in proposal.evidence:
+            if e.kind == "note" and e.quote.strip() and _normalise(e.quote) not in note_norm:
+                notes.append(f"validator: {proposal.code} note quote not found in the note; "
+                             f"dropped (possible fabrication): '{_clip(e.quote)}'")
+                continue
+            if e.kind == "guideline":
+                if e.ref not in knowledge.guideline_ids:
+                    notes.append(f"validator: {proposal.code} cites unknown guideline "
+                                 f"'{e.ref}'; dropped citation")
+                    continue
+                if e.quote.strip() and _normalise(e.quote) not in _normalise(guideline_texts[e.ref]):
+                    notes.append(f"validator: {proposal.code} quote not found in {e.ref}; "
+                                 f"dropped citation: '{_clip(e.quote)}'")
+                    continue
+            if e.kind == "catalog" and e.ref:
+                if e.ref not in knowledge.codes:
+                    notes.append(f"validator: {proposal.code} cites unknown catalogue entry "
+                                 f"'{e.ref}'; dropped citation")
+                    continue
+                entry_title = knowledge.codes[e.ref]["title"]
+                if e.quote.strip() and _normalise(e.quote) != _normalise(entry_title):
+                    notes.append(f"validator: catalog quote for {e.ref} corrected from "
+                                 f"'{_clip(e.quote)}' to entry title '{entry_title}'")
+                    e.quote = entry_title
+            verified.append(e)
+        proposal.evidence = verified
+        has_note_quote = any(e.kind == "note" and e.quote.strip() for e in verified)
+        cites_source = any(e.kind in ("guideline", "catalog") and e.ref for e in verified)
         if not (has_note_quote and cites_source):
             notes.append(f"validator: {proposal.code} lacks required evidence "
-                         "(note quote + catalogue/guideline citation); demoted to candidate")
+                         "(verified note quote + catalogue/guideline citation); demoted to candidate")
             decision.candidates.append(Candidate(code=proposal.code, title=proposal.title,
                                                  missing_discriminator="evidence not supplied by model"))
             continue
