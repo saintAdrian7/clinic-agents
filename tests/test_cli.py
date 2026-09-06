@@ -62,7 +62,7 @@ def test_decision_with_non_ascii_confidence_rationale_does_not_crash(tmp_path, m
     input_path = tmp_path / "notes.jsonl"
     input_path.write_text(json.dumps({"id": "n-1", "text": "Patient has fever."}), encoding="utf-8")
 
-    def fake_code_note(note, provider, knowledge):
+    def fake_code_note(note, provider, knowledge, recorder=None):
         return Decision(note_id=note.id, status="unresolved",
                         confidence="low", confidence_rationale="score ≥ threshold")
 

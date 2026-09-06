@@ -10,3 +10,4 @@ paths:
   guidelines: data/guideline_snippets.json
   additions: data_added/icd_additions.json
   results: out/results.jsonl
+  responses: out/responses.jsonl
